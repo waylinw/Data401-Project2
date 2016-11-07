@@ -36,17 +36,20 @@ class Classifier:
                 x_train = self.Selector.transform(x_tfidf)
                 
                 # here will give you a list of indexes to update in the coef_
-                feature_idx = x_test.getrow(0).nonzero()[1]
+                feature_index = x_test.getrow(0).nonzero()[1]
+                feature_values = x_test.getrow(0).nonzero()[0]
                 
                 predict=self.model.intercept_
-                for ids in feature_idx:
-                    beta = betas[ids]
-                    predict += beta * value
+                for ids in range(len(feature_index)):
+                    beta = betas[feature_index[ids]]
+                    predict += beta * feature_values[ids]
                 
-                 resid = y - (1 / (1 + np.exp(-predict)))
-                 for i in j:
-                    beta[j] += (1 / total) * resid
-
+                resid = y - (1 / (1 + np.exp(-predict)))
+                for ids in feature_index:
+                    beta[feature_index] += (1 / total) * resid
+                
+                correct += 1 * (abs(resid) < .5)
+                if total % 1000 == 0: print(correct/total)
                     # determine whether prediction was correct
                     #correct += 1 * (abs(resid) < .5)
                     # print out the accuracy rate every 1000 iterations
