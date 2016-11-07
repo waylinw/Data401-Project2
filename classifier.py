@@ -1,12 +1,27 @@
 from sklearn.externals import joblib 
-from sklearn.linear_model import LogisticRegression
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LassoCV
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import ElasticNetCV
+
+from sklearn.cross_validation import cross_val_score 
+from sklearn.linear_model import LogisticRegression 
+from sklearn.linear_model import LogisticRegressionCV          
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import SelectPercentile
+from sklearn.feature_selection import chi2
+from sklearn.feature_selection import SelectFromModel
+import operator
 from io import StringIO
 import csv
 class Classifier:
     def __init__(self):
-        self.models=joblib.load('tfidftop50K.pkl')
+        self.model=joblib.load('tfidftop50K.pkl')
         self.Vect=joblib.load('tfidfmixbigram.pkl')
+        self.Selector=joblib.load('tfidfselector.pkl')
 
     def update(self, data):
         with open(data, newline="") as f:
@@ -60,10 +75,10 @@ class Classifier:
 
                 # gets the body
                 body = row[17]
-                betas=model.coef_
-                #need a list of 0s and 1s of whether or not unigram/bigram is in model
+                betas=self.model.coef_
+                #need a list of 0s and 1s of whether or not unigram/bigram is in                 
                 j=Vect.transform(body)
-                predict=model.intercept_
+                predict=self.model.intercept_
                 # get residual of current prediction
                 # Dictionary has key of feature id, value of lookup
                 # needs to be altered to reflect beta equations
