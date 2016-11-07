@@ -56,11 +56,6 @@ class Classifier:
         reader = csv.reader(StringIO(data))
         predict_result=[]
         for row in reader:
-            try:
-                row = next(reader)
-            except StopIteration:
-                break
-            
             # gets the body
             body = row[17]
 
