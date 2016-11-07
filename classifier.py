@@ -36,8 +36,8 @@ class Classifier:
                 x_train = self.Selector.transform(x_tfidf)
                 
                 # here will give you a list of indexes to update in the coef_
-                feature_index = x_test.getrow(0).nonzero()[1]
-                feature_values = x_test.getrow(0).nonzero()[0]
+                feature_index = x_train.getrow(0).nonzero()[1]
+                feature_values = x_train.getrow(0).nonzero()[0]
                 
                 predict=self.model.intercept_
                 for ids in range(len(feature_index)):
