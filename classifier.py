@@ -17,7 +17,7 @@ class Classifier:
         self.model=joblib.load('tfidftop50K.pkl')
         self.Vect=joblib.load('tfidfmixbigram.pkl')
         self.Selector=joblib.load('tfidfselector.pkl')
-        self.betas=self.model.coef_
+        self.betas=self.model.coef_[0]
 
     def update(self, data):
         reader = csv.reader(StringIO(data))
@@ -30,81 +30,55 @@ class Classifier:
 
             # gets the body
             body = row[17]
-            print(body)
 
             #transform the body into features with tfidf vectorizer, then the 
             # feature_id list for updating coefs
-            x_tfidf = self.Vect.transform(body)
+            x_tfidf = self.Vect.transform([body])
             x_train = self.Selector.transform(x_tfidf)
             
-            print(x_train.shape)
             # here will give you a list of indexes to update in the coef_
             feature_index = x_train.getrow(0).nonzero()[1]
             feature_values = x_train.getrow(0).nonzero()[0]
-            
-            print('featureidx: ', feature_index)
-            print('feature-values: ', feature_values)
 
             predict=self.model.intercept_
             for ids in range(len(feature_index)):
                 beta = self.betas[feature_index[ids]]
                 predict += beta * feature_values[ids]
 
-                resid = y - (1 / (1 + np.exp(-predict)))
-                print('resid is: ', resid)
+            resid = y - (1 / (1 + np.exp(-predict)))
                 
-                for ids in feature_index:
-                    self.beta[feature_index] += (1 / total) * resid
-                    correct += 1 * (abs(resid) < .5)
-                    print(correct)
-                    # determine whether prediction was correct
-                    #correct += 1 * (abs(resid) < .5)
-                    # print out the accuracy rate every 1000 iterations
-                    #if total % 1000 == 0: print(correct / total)
-                    #need a list of 0s and 1s of whether or not unigram/bigram is in model
-                    #j=self.Vect.transform(body)
-                    #predict=self.model.intercept_
-
-                    # get residual of current prediction
-                    # Dictionary has key of feature id, value of lookup
-                    # needs to be altered to reflect beta equations
-                    #for ids, value in j:
-                    #    if ids in dictionary:
-                    #        beta = betas[dictionary[ids]]
-                    #        predict+=beta*value
-                    #resid = y - (1 / (1 + np.exp(-predict)))
-                    #for i in j:
-                    #    beta[j] += (1 / total) * resid
-
-                    # determine whether prediction was correct
-                    #correct += 1 * (abs(resid) < .5)
-                    # print out the accuracy rate every 1000 iterations
-                    #if total % 1000 == 0: print(correct / total)
+            for ids in feature_index:
+                self.betas[feature_index] += (1 / total) * resid
+                
+            correct += 1 * (abs(resid) < .5)
 
     def predict(self, data):
-         with open(data, newline="") as f:
-            reader = csv.reader(f)
-            next(reader) # skip header row
-            while True:
-                total += 1
-                try:
-                    row = next(reader)
-                except StopIteration:
-                    break
+        reader = csv.reader(StringIO(data))
+        predict_result=[]
+        for row in reader:
+            try:
+                row = next(reader)
+            except StopIteration:
+                break
+            
+            # gets the body
+            body = row[17]
 
-                # define response variable (controversiality)
-                y = int(row[20])
+            x_tfidf = self.Vect.transform([body])
+            x_train = self.Selector.transform(x_tfidf)
 
-                # gets the body
-                body = row[17]
-                
-                x_tfidf = self.Vect.transform(body)
-                x_train = self.Selector.transform(x_tfidf)
-                
-                # here will give you a list of indexes to update in the coef_
-                feature_index = x_train.getrow(0).nonzero()[1]
-                feature_values = x_train.getrow(0).nonzero()[0]
-                
-                
-                ## TO DO: Figure out how to calculate the next value. i think we have to calc the resid like above
-                ## and it's controversial when the (abs(resid) < .5)
+            # here will give you a list of indexes to update in the coef_
+            feature_index = x_train.getrow(0).nonzero()[1]
+            feature_values = x_train.getrow(0).nonzero()[0]
+
+            predict=self.model.intercept_
+            for ids in range(len(feature_index)):
+                beta = self.betas[feature_index[ids]]
+                predict += beta * feature_values[ids]
+
+            predict_val = (1 / (1 + np.exp(-predict)))
+            if (abs(predict_val) < .5):
+                predict_result.append(0)
+            else:
+                predict_result.append(1)
+        return predict_result
