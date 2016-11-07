@@ -23,35 +23,40 @@ class Classifier:
         reader = csv.reader(StringIO(data))
         correct = 0
         total = 0
-        while True:
-            for row in reader:
-                total += 1
-                    # define response variable (controversiality)
-                y = int(row[20])
+        for row in reader:
+            total += 1
+            # define response variable (controversiality)
+            y = int(row[20])
 
-                    # gets the body
-                body = row[17]
-                
-                #transform the body into features with tfidf vectorizer, then the 
-                # feature_id list for updating coefs
-                x_tfidf = self.Vect.transform(body)
-                x_train = self.Selector.transform(x_tfidf)
-                
-                # here will give you a list of indexes to update in the coef_
-                feature_index = x_train.getrow(0).nonzero()[1]
-                feature_values = x_train.getrow(0).nonzero()[0]
-                
-                predict=self.model.intercept_
-                for ids in range(len(feature_index)):
-                    beta = self.betas[feature_index[ids]]
-                    predict += beta * feature_values[ids]
-                
+            # gets the body
+            body = row[17]
+            print(body)
+
+            #transform the body into features with tfidf vectorizer, then the 
+            # feature_id list for updating coefs
+            x_tfidf = self.Vect.transform(body)
+            x_train = self.Selector.transform(x_tfidf)
+            
+            print(x_train.shape)
+            # here will give you a list of indexes to update in the coef_
+            feature_index = x_train.getrow(0).nonzero()[1]
+            feature_values = x_train.getrow(0).nonzero()[0]
+            
+            print('featureidx: ', feature_index)
+            print('feature-values: ', feature_values)
+
+            predict=self.model.intercept_
+            for ids in range(len(feature_index)):
+                beta = self.betas[feature_index[ids]]
+                predict += beta * feature_values[ids]
+
                 resid = y - (1 / (1 + np.exp(-predict)))
+                print('resid is: ', resid)
+                
                 for ids in feature_index:
                     self.beta[feature_index] += (1 / total) * resid
-                
-                correct += 1 * (abs(resid) < .5)
-            print(correct)
+                    correct += 1 * (abs(resid) < .5)
+                    print(correct)
                     # determine whether prediction was correct
                     #correct += 1 * (abs(resid) < .5)
                     # print out the accuracy rate every 1000 iterations
