@@ -76,4 +76,5 @@ class Classifier:
                 predict_result.append(0)
             else:
                 predict_result.append(1)
+                print('controversial')
         return predict_result
