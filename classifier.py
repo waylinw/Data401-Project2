@@ -1,11 +1,12 @@
 from sklearn.externals import joblib 
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
 from io import StringIO
 import csv
-,class Classifier:
-
+class Classifier:
     def __init__(self):
-        self.model=joblib.dump(model,'tfidftop50K.pkl',compress=9)
-        self.Vect=joblib.dump(vect,'tfidfmxbigram.pkl',compress=9)
+        self.models=joblib.load('tfidftop50K.pkl')
+        self.Vect=joblib.load('tfidfmixbigram.pkl')
 
     def update(self, data):
         with open(data, newline="") as f:
