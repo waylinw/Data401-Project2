@@ -16,15 +16,16 @@ class Classifier:
     def __init__(self):
         self.model=joblib.load('tfidftop50K.pkl')
         self.Vect=joblib.load('tfidfmixbigram.pkl')
-        self.Selector=joblib.load('tfidfselector.pkl')
+        self.Mapping = joblib.load('tfidfselectormapping.pkl')
+        #self.Selector=joblib.load('tfidfselector.pkl')
         self.betas=self.model.coef_[0]
+        self.intercept = self.model.intercept_
+        self.total = 200000
 
     def update(self, data):
         reader = csv.reader(StringIO(data))
-        correct = 0
-        total = 0
         for row in reader:
-            total += 1
+            self.total += 1
             # define response variable (controversiality)
             y = int(row[20])
 
@@ -33,24 +34,20 @@ class Classifier:
 
             #transform the body into features with tfidf vectorizer, then the 
             # feature_id list for updating coefs
-            x_tfidf = self.Vect.transform([body])
-            x_train = self.Selector.transform(x_tfidf)
+            learn = self.Vect.transform([body])
+            pred = 0
+            pred += self.intercept
+            for val, idx in tuple(zip(learn.todense()[0, learn.nonzero()[1]].tolist()[0], learn.nonzero()[1])):
+                real_idx = self.Mapping.get(idx)
+                if real_idx != None:
+                    pred += self.betas[real_idx] * val
             
-            # here will give you a list of indexes to update in the coef_
-            feature_index = x_train.getrow(0).nonzero()[1]
-            feature_values = x_train.getrow(0).nonzero()[0]
-
-            predict=self.model.intercept_
-            for ids in range(len(feature_index)):
-                beta = self.betas[feature_index[ids]]
-                predict += beta * feature_values[ids]
-
-            resid = y - (1 / (1 + np.exp(-predict)))
-                
-            for ids in feature_index:
-                self.betas[feature_index] += (1 / total) * resid
-                
-            correct += 1 * (abs(resid) < .5)
+            resid = y - (1 / (1 + np.exp(-pred)))
+            
+            for val, idx in tuple(zip(learn.todense()[0, learn.nonzero()[1]].tolist()[0], learn.nonzero()[1])):
+                real_idx = self.Mapping.get(idx)
+                if real_idx != None:
+                    self.betas[real_idx] += (1 / self.total) * resid
 
     def predict(self, data):
         reader = csv.reader(StringIO(data))
@@ -58,23 +55,20 @@ class Classifier:
         for row in reader:
             # gets the body
             body = row[17]
+            
+            test = self.Vect.transform([body])
+            pred = 0
+            pred += self.intercept
+            for val, idx in tuple(zip(test.todense()[0, test.nonzero()[1]].tolist()[0], test.nonzero()[1])):
+                real_idx = self.Mapping.get(idx)
+                if real_idx != None:
+                    pred += self.betas[real_idx] * val
 
-            x_tfidf = self.Vect.transform([body])
-            x_train = self.Selector.transform(x_tfidf)
-
-            # here will give you a list of indexes to update in the coef_
-            feature_index = x_train.getrow(0).nonzero()[1]
-            feature_values = x_train.getrow(0).nonzero()[0]
-
-            predict=self.model.intercept_
-            for ids in range(len(feature_index)):
-                beta = self.betas[feature_index[ids]]
-                predict += beta * feature_values[ids]
-
-            predict_val = (1 / (1 + np.exp(-predict)))
+            predict_val = (1 / (1 + np.exp(-pred)))
+            
             if (abs(predict_val) < .5):
                 predict_result.append(0)
             else:
                 predict_result.append(1)
-                print('controversial')
+                
         return predict_result
